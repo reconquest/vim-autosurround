@@ -32,7 +32,7 @@ algorithms, described above, or [user-registered functions](#extension).
 
 ```viml
 Plug 'vim-autosurround'
-    inoremap  ( (<C-O>AutoSurround(")")<CR>
+    inoremap  ( (<C-O>:call AutoSurround(")")<CR>
 ```
 
 In case of using `matchem` or similar surrounding plugins things are going to
