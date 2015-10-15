@@ -69,13 +69,14 @@ au VimEnter * au! run_after_plug_end
 
 Plugin provides API, which can be used to extend surround logic:
 
-* `index` = `autosurround.register_finder(callback)`, `callback` is a function
-  of one argument `cursor`, which is `vim.current.window.cursor`; `callback`
-  should return tuple `(line, column)` with position, which will be used for
-  inserting pair character or `None`, if `callback` is not able to find
-  position.
+* `index = autosurround.register_finder(callback)`, `callback` is a function
+  of one argument `cursor`, which is `vim.current.window.cursor`.
 
-  `index` can be used for `unregister_finder(index)`
+  `callback` should return tuple `(line, column)` with position, which will be
+  used for inserting pair character or `None`, if `callback` is not able to
+  find position.
+
+  `index` can be used for `unregister_finder(index)`.
 
 * `autosurround.unregister_finder(index)` will remove previously added
   callback.
