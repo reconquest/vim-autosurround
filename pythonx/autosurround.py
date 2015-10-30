@@ -43,14 +43,15 @@ def _match_enclosing_brace(cursor):
         return
 
     with _restore_cursor():
-        vim.command('normal! {}l%'.format(len(match.group(1))))
+        vim.command('normal! {}%'.format(
+            (str(len(match.group(1))) + 'l') if match.group(1) != '' else ''
+        ))
         return vim.current.window.cursor
 
 
 def _match_enclosing_quote(cursor):
     line = vim.current.buffer[cursor[0]-1][cursor[1]:]
     if not re.match(r'^["\'`]', line):
-        print(line)
         return
 
     quote = line[0].replace('"', '\\"')
