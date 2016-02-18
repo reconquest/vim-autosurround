@@ -54,6 +54,9 @@ def _match_enclosing_quote(cursor):
     if not re.match(r'^["\'`]', line):
         return
 
+    if _is_cursor_in_string():
+        return
+
     quote = line[0].replace('"', '\\"')
 
     with _restore_cursor():
@@ -66,16 +69,7 @@ def _match_enclosing_quote(cursor):
             else:
                 vim.command('normal! l')
 
-            still_inside_string = False
-            for syn_id in vim.eval('synstack(line("."), col("."))'):
-                syn_name = vim.eval(
-                    'synIDattr(synIDtrans({}), "name")'.format(syn_id)
-                )
-                if syn_name.lower() == 'string':
-                    still_inside_string = True
-                    break
-
-            if not still_inside_string:
+            if not _is_cursor_in_string():
                 vim.current.window.cursor = match_pos
                 return vim.current.window.cursor
 
@@ -94,6 +88,17 @@ def _restore_cursor():
     cursor = vim.current.window.cursor
     yield
     vim.current.window.cursor = cursor
+
+
+def _is_cursor_in_string():
+    for syn_id in vim.eval('synstack(line("."), col("."))'):
+        syn_name = vim.eval(
+            'synIDattr(synIDtrans({}), "name")'.format(syn_id)
+        )
+        if syn_name.lower() == 'string':
+            return True
+            break
+    return False
 
 
 enclosing_strategies = []
