@@ -4,6 +4,8 @@ import vim
 import re
 from contextlib import contextmanager
 
+_current_pairs = {}
+
 
 def surround(pair):
     end_pos = find_enclosure(vim.current.window.cursor)
@@ -23,6 +25,8 @@ def surround(pair):
         vim.current.window.cursor = (end_pos[0], end_pos[1])
         vim.command('normal! a' + pair)
 
+    _current_pairs[(cursor, pair)] = (end_pos[0], end_pos[1]+1)
+
     return True
 
 
@@ -36,10 +40,65 @@ def find_enclosure(cursor):
             return pos
 
 
+def correct_inserted_pair(open, close):
+    buffer = vim.current.buffer
+
+    corrected = False
+
+    with _restore_cursor():
+        vim.command('normal! i' + close)
+        vim.command('normal %')
+        cursor = vim.current.window.cursor
+        if (buffer[cursor[0]-1][cursor[1]]) == open:
+            open_pair = ((cursor[0], cursor[1]+1), close)
+            if open_pair in _current_pairs:
+                open_pair_cursor = cursor
+
+                vim.command('normal %')
+                vim.command('undojoin | normal "_x')
+
+                vim.current.window.cursor = open_pair_cursor
+                vim.command('normal %')
+
+                cursor = vim.current.window.cursor
+                close_pair_pos = _current_pairs[open_pair]
+                if close_pair_pos <= (cursor[0], cursor[1]):
+                    corrected = True
+                    vim.command('normal "_x')
+                    del _current_pairs[open_pair]
+        else:
+            vim.command('normal "_x')
+
+    if corrected:
+        vim.command('normal! i' + close)
+
+    return corrected
+
+
+def clean_current_pairs():
+    global _current_pairs
+
+    cursor = vim.current.window.cursor
+    cursor = (cursor[0], cursor[1]+1)
+
+    kept_pairs = {}
+    for open_pair in _current_pairs:
+        open_pair_pos = open_pair[0]
+        close_pair_pos = _current_pairs[open_pair]
+
+        if open_pair_pos <= cursor <= close_pair_pos:
+            kept_pairs[open_pair] = close_pair_pos
+
+    _current_pairs = kept_pairs
+
+
 def _match_enclosing_brace(cursor):
     line = vim.current.buffer[cursor[0]-1][cursor[1]:]
     match = re.match(r'^(\[[.\w_\[\]-]+|[.\w_-]*)[([{]', line)
     if not match:
+        return
+
+    if _is_cursor_in_string():
         return
 
     with _restore_cursor():
@@ -49,29 +108,20 @@ def _match_enclosing_brace(cursor):
         return vim.current.window.cursor
 
 
-def _match_enclosing_quote(cursor):
-    line = vim.current.buffer[cursor[0]-1][cursor[1]:]
-    if not re.match(r'^["\'`]', line):
-        return
-
+def _match_end_of_code_block(cursor):
     if _is_cursor_in_string():
         return
 
-    quote = line[0].replace('"', '\\"')
+    if len(vim.current.buffer[cursor[0]-1]) == cursor[1]:
+        return
 
-    with _restore_cursor():
-        while int(vim.eval('search("{}", "W")'.format(quote))) > 0:
-            cursor = vim.current.window.cursor
-            match_pos = cursor
+    if vim.current.buffer[cursor[0]-1][-1] in ')]}{[(':
+        return
 
-            if len(vim.current.buffer[cursor[0]-1]) == cursor[1]+1:
-                vim.command('normal! +')
-            else:
-                vim.command('normal! l')
-
-            if not _is_cursor_in_string():
-                vim.current.window.cursor = match_pos
-                return vim.current.window.cursor
+    if len(vim.current.buffer) > cursor[0]:
+        stripped_line = vim.current.buffer[cursor[0]].strip()
+        if stripped_line == '}' or stripped_line == '':
+            return (cursor[0], len(vim.current.buffer[cursor[0]-1]))
 
 
 def register_finder(callback):
@@ -102,5 +152,5 @@ def _is_cursor_in_string():
 
 
 enclosing_strategies = []
-register_finder(_match_enclosing_quote)
+register_finder(_match_end_of_code_block)
 register_finder(_match_enclosing_brace)
