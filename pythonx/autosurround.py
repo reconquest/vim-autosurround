@@ -54,22 +54,24 @@ def correct_inserted_pair(open, close):
 
     open_pair_pos = (int(open_pair_pos[0]), int(open_pair_pos[1]))
 
-    corrected = False
-    with _restore_cursor():
-        cursor = vim.current.window.cursor
-        if (buffer[cursor[0]-1][cursor[1]-1]) == open:
-            open_pair = ((open_pair_pos[0], open_pair_pos[1]), close)
-            if open_pair not in _current_pairs:
-                return
+    if open_pair_pos == (0, 0):
+        return
 
-            cursor = vim.current.window.cursor
-            close_pair_pos = _current_pairs[open_pair]
-            if close_pair_pos != (cursor[0], cursor[1]):
-                corrected = True
-                buffer[cursor[0]-1] = \
-                    buffer[cursor[0]-1][:close_pair_pos[1]-1] + \
-                    buffer[cursor[0]-1][close_pair_pos[1]:]
-                del _current_pairs[open_pair]
+    corrected = False
+    cursor = vim.current.window.cursor
+    if (buffer[open_pair_pos[0]-1][open_pair_pos[1]-1]) == open:
+        open_pair = ((open_pair_pos[0], open_pair_pos[1]), close)
+        if open_pair not in _current_pairs:
+            return
+
+        cursor = vim.current.window.cursor
+        close_pair_pos = _current_pairs[open_pair]
+        if close_pair_pos != (cursor[0], cursor[1]):
+            corrected = True
+            buffer[cursor[0]-1] = \
+                buffer[cursor[0]-1][:close_pair_pos[1]-1] + \
+                buffer[cursor[0]-1][close_pair_pos[1]:]
+            del _current_pairs[open_pair]
 
     return corrected
 
