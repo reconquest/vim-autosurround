@@ -7,7 +7,7 @@ endfun
 fun! AutoSurroundInitMappings()
     inoremap <silent> <buffer> )
         \ <C-R>=pyeval("autosurround.correct_inserted_pair('(', ')')")
-            \ ? ''
+            \ ? ')'
             \ : (exists('*g:MatchemMatchEnd') ? MatchemMatchEnd(')') : '')<CR>
 endfun!
 

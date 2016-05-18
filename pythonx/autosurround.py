@@ -43,34 +43,33 @@ def find_enclosure(cursor):
 def correct_inserted_pair(open, close):
     buffer = vim.current.buffer
 
+    open_pair_pos = vim.eval(
+        'searchpairpos("{}", "", "{}", "nb")'.format(
+            open, close,
+        )
+    )
+
+    if not open_pair_pos:
+        return
+
+    open_pair_pos = (int(open_pair_pos[0]), int(open_pair_pos[1]))
+
     corrected = False
-
     with _restore_cursor():
-        vim.command('normal! i' + close)
-        vim.command('normal %')
         cursor = vim.current.window.cursor
-        if (buffer[cursor[0]-1][cursor[1]]) == open:
-            open_pair = ((cursor[0], cursor[1]+1), close)
-            if open_pair in _current_pairs:
-                open_pair_cursor = cursor
+        if (buffer[cursor[0]-1][cursor[1]-1]) == open:
+            open_pair = ((open_pair_pos[0], open_pair_pos[1]), close)
+            if open_pair not in _current_pairs:
+                return
 
-                vim.command('normal %')
-                vim.command('undojoin | normal "_x')
-
-                vim.current.window.cursor = open_pair_cursor
-                vim.command('normal %')
-
-                cursor = vim.current.window.cursor
-                close_pair_pos = _current_pairs[open_pair]
-                if close_pair_pos <= (cursor[0], cursor[1]):
-                    corrected = True
-                    vim.command('normal "_x')
-                    del _current_pairs[open_pair]
-        else:
-            vim.command('normal "_x')
-
-    if corrected:
-        vim.command('normal! i' + close)
+            cursor = vim.current.window.cursor
+            close_pair_pos = _current_pairs[open_pair]
+            if close_pair_pos != (cursor[0], cursor[1]):
+                corrected = True
+                buffer[cursor[0]-1] = \
+                    buffer[cursor[0]-1][:close_pair_pos[1]-1] + \
+                    buffer[cursor[0]-1][close_pair_pos[1]:]
+                del _current_pairs[open_pair]
 
     return corrected
 
