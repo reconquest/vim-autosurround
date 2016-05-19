@@ -110,6 +110,18 @@ def _match_enclosing_quote(cursor):
             return vim.current.window.cursor
 
 
+def _match_long_identifier(cursor):
+    line = vim.current.buffer[cursor[0]-1][cursor[1]:]
+    match = re.match(r'^([.\w_\[\]-]+)\s', line)
+    if not match:
+        return
+
+    if _is_cursor_in_string(cursor):
+        return
+
+    return (cursor[0], cursor[1]+len(match.group(1))-1)
+
+
 def _match_enclosing_brace(cursor):
     line = vim.current.buffer[cursor[0]-1][cursor[1]:]
     match = re.match(r'^(\[[.\w_\[\]-]+|[.\w_-]*)[([{]', line)
@@ -133,7 +145,7 @@ def _match_end_of_code_block(cursor):
     if len(vim.current.buffer[cursor[0]-1]) == cursor[1]:
         return
 
-    if vim.current.buffer[cursor[0]-1][-1] in ')]}{[(':
+    if vim.current.buffer[cursor[0]-1][-1] in '{[(':
         return
 
     if len(vim.current.buffer) > cursor[0]:
@@ -195,7 +207,8 @@ def _is_cursor_in_string(cursor):
 
 
 enclosing_strategies = []
-register_finder(_match_end_of_code_block)
-register_finder(_match_enclosing_brace)
 register_finder(_match_enclosing_quote)
 register_finder(_match_first_argument)
+register_finder(_match_end_of_code_block)
+register_finder(_match_enclosing_brace)
+register_finder(_match_long_identifier)
