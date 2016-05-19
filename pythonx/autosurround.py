@@ -142,6 +142,19 @@ def _match_end_of_code_block(cursor):
             return (cursor[0], len(vim.current.buffer[cursor[0]-1]))
 
 
+def _match_first_argument(cursor):
+    if _is_cursor_in_string(cursor):
+        return
+
+    line = vim.current.buffer[cursor[0]-1][cursor[1]:]
+
+    matches = re.match(r'([\w.]+),', line)
+    if not matches:
+        return
+
+    return (cursor[0], cursor[1]+len(matches.group(1))-1)
+
+
 def register_finder(callback):
     enclosing_strategies.append(callback)
     return len(enclosing_strategies)
@@ -185,3 +198,4 @@ enclosing_strategies = []
 register_finder(_match_end_of_code_block)
 register_finder(_match_enclosing_brace)
 register_finder(_match_enclosing_quote)
+register_finder(_match_first_argument)
