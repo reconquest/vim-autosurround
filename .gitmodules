@@ -1,0 +1,6 @@
+[submodule "vendor/github.com/reconquest/test-runner.bash"]
+	path = vendor/github.com/reconquest/test-runner.bash
+	url = https://github.com/reconquest/test-runner.bash
+[submodule "vendor/github.com/reconquest/vim-tests.bash"]
+	path = vendor/github.com/reconquest/vim-tests.bash
+	url = https://github.com/reconquest/vim-tests.bash
