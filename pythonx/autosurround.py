@@ -127,7 +127,6 @@ def _match_long_identifier(cursor):
 def _match_enclosing_brace(cursor):
     line = vim.current.buffer[cursor[0]-1][cursor[1]:]
     match = re.match(r'^(\[[.\w_\[\]-]+|[.\w_-]*)[([{]', line)
-    print(line, match)
     if not match:
         return
 
