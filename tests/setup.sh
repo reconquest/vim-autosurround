@@ -14,6 +14,7 @@ syn on
 set rtp+=$(vim-tests:get-rtp "bundle")
 
 inoremap ( (<C-R>=AutoSurround(")")?'':''<CR>
+inoremap { {<C-R>=AutoSurround("}")?'':''<CR>
 set ft=sh
 
 " workaround for incorrect syntax grouping by default, linked to Constant

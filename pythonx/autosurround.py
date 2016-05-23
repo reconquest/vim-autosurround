@@ -78,7 +78,6 @@ def correct_inserted_pair(open, close):
 
 def clean_current_pairs():
     global _current_pairs
-
     cursor = vim.current.window.cursor
     cursor = (cursor[0], cursor[1]+1)
 
@@ -116,6 +115,9 @@ def _match_long_identifier(cursor):
     if not match:
         return
 
+    if match.group(1).count(']') != match.group(1).count('['):
+        return
+
     if _is_cursor_in_string(cursor):
         return
 
@@ -125,6 +127,7 @@ def _match_long_identifier(cursor):
 def _match_enclosing_brace(cursor):
     line = vim.current.buffer[cursor[0]-1][cursor[1]:]
     match = re.match(r'^(\[[.\w_\[\]-]+|[.\w_-]*)[([{]', line)
+    print(line, match)
     if not match:
         return
 
@@ -160,7 +163,7 @@ def _match_argument(cursor):
 
     line = vim.current.buffer[cursor[0]-1][cursor[1]:]
 
-    matches = re.match(r'([\w.]+)[,)]', line)
+    matches = re.match(r'([\w.]+)[,)\]]', line)
     if not matches:
         return
 
