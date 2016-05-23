@@ -2,7 +2,7 @@ Plugin will automatically add enclosing `)` or `}` (or any other) at appropriate
 
 ![gif](https://cloud.githubusercontent.com/assets/674812/10417889/f530e936-703a-11e5-8f77-2b7f6fe23191.gif)
 
-Currently, two cases are supported:
+Currently, following cases are supported:
 
 * adding pair after call-like construction:
   ```
@@ -13,8 +13,41 @@ Currently, two cases are supported:
 * adding pair after string:
   ```
   |"blah"       type: test( ->
-  test("blah")
+  test(|"blah")
   ```
+
+* adding pair after argument:
+  ```
+  something(|arg1, arg2)        type: test( ->
+  something(test(|arg1), arg2)
+  ```
+
+  ```
+  something(arg1, |arg2)        type: test( ->
+  something(arg1, test(arg2))
+  ```
+
+* adding pairs in conditionals:
+  ```
+  if |blah != nil       type test( ->
+  if test(blah) != nil
+  ```
+
+* surrounding with {}:
+  ```
+  if x(|blah) != nil       type some( ->
+  if x(some{|blah}) != nil
+  ```
+
+* autocorrection:
+  ```
+  something(|arg1, arg2)        type: test( ->
+  something(test(|arg1), arg2)  move cursor after last ) and type ) ->
+  something(test(arg1), arg2)|
+  something(test(arg1, arg2))|
+  ```
+
+
 
 Undo will remove added pair and leaving cursor in-place:
 
