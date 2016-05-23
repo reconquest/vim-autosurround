@@ -43,37 +43,46 @@ def find_enclosure(cursor):
 def correct_inserted_pair(open, close):
     buffer = vim.current.buffer
 
-    open_pair_pos = vim.eval(
-        'searchpairpos("{}", "", "{}", "nb")'.format(
-            open, close,
-        )
-    )
+    with _restore_cursor():
+        for pair in _current_pairs:
+            corrected = False
 
-    if not open_pair_pos:
-        return
+            close_pair_pos = _current_pairs[pair]
 
-    open_pair_pos = (int(open_pair_pos[0]), int(open_pair_pos[1]))
+            if buffer[close_pair_pos[0]-1][close_pair_pos[1]] != close:
+                continue
 
-    if open_pair_pos == (0, 0):
-        return
+            buffer[close_pair_pos[0]-1] = \
+                buffer[close_pair_pos[0]-1][:close_pair_pos[1]] + \
+                buffer[close_pair_pos[0]-1][close_pair_pos[1]+1:]
 
-    corrected = False
-    cursor = vim.current.window.cursor
-    if (buffer[open_pair_pos[0]-1][open_pair_pos[1]-1]) == open:
-        open_pair = ((open_pair_pos[0], open_pair_pos[1]), close)
-        if open_pair not in _current_pairs:
-            return
+            try:
+                open_pair_pos = vim.eval(
+                    'searchpairpos("{}", "", "{}", "nb")'.format(
+                        open, close,
+                    )
+                )
 
-        cursor = vim.current.window.cursor
-        close_pair_pos = _current_pairs[open_pair]
-        if close_pair_pos != (cursor[0], cursor[1]):
-            corrected = True
-            buffer[cursor[0]-1] = \
-                buffer[cursor[0]-1][:close_pair_pos[1]] + \
-                buffer[cursor[0]-1][close_pair_pos[1]+1:]
-            del _current_pairs[open_pair]
+                open_pair_pos = (int(open_pair_pos[0]), int(open_pair_pos[1]))
 
-    return corrected
+                if open_pair_pos == (0, 0):
+                    return
+
+                open_pair = (open_pair_pos, close)
+                if open_pair not in _current_pairs:
+                    return
+
+                if _current_pairs[open_pair] == close_pair_pos:
+                    corrected = True
+            finally:
+                if not corrected:
+                    buffer[close_pair_pos[0]-1] = \
+                        buffer[close_pair_pos[0]-1][:close_pair_pos[1]] + close + \
+                        buffer[close_pair_pos[0]-1][close_pair_pos[1]:]
+                else:
+                    return True
+
+        return False
 
 
 def clean_current_pairs():
@@ -85,7 +94,8 @@ def clean_current_pairs():
     for open_pair in _current_pairs:
         open_pair_pos = open_pair[0]
         close_pair_pos = _current_pairs[open_pair]
-        if open_pair_pos <= cursor <= close_pair_pos:
+        if open_pair_pos <= cursor <= close_pair_pos or \
+                cursor[0] == close_pair_pos[0]:
             kept_pairs[open_pair] = close_pair_pos
 
     _current_pairs = kept_pairs
