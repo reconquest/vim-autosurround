@@ -1,5 +1,6 @@
-vim-tests:type "$_vim_session" "alocal abc=def" "enter" "escape"
-vim-tests:type "$_vim_session" "k^f=a" "test(" "escape"
+vim-tests:type "$_vim_session" \
+    "alocal abc=def" "enter" "escape" \
+    "k^f=a" "test(" "escape"
 
 tests:eval tmux:cat-screen "$_vim_session"
 

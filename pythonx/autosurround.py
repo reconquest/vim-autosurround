@@ -49,6 +49,9 @@ def correct_inserted_pair(open, close):
 
             close_pair_pos = _current_pairs[pair]
 
+            if len(buffer[close_pair_pos[0]-1]) <= close_pair_pos[1]:
+                continue
+
             if buffer[close_pair_pos[0]-1][close_pair_pos[1]] != close:
                 continue
 
@@ -69,6 +72,7 @@ def correct_inserted_pair(open, close):
                     return
 
                 open_pair = (open_pair_pos, close)
+
                 if open_pair not in _current_pairs:
                     return
 
@@ -163,7 +167,7 @@ def _match_end_of_code_block(cursor):
     if len(vim.current.buffer) > cursor[0]:
         stripped_line = vim.current.buffer[cursor[0]].strip()
         if stripped_line == '}' or stripped_line == '':
-            return (cursor[0], len(vim.current.buffer[cursor[0]-1]))
+            return (cursor[0], len(vim.current.buffer[cursor[0]-1])-1)
 
 
 def _match_argument(cursor):

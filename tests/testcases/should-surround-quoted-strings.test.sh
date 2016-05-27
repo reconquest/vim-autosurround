@@ -1,5 +1,6 @@
-vim-tests:type "$_vim_session" 'i"abc"' "escape"
-vim-tests:type "$_vim_session" 'I(' "escape"
+vim-tests:type "$_vim_session" \
+    'i"abc"' "escape" \
+    'I(' "escape"
 
 tests:eval tmux:cat-screen "$_vim_session"
 
