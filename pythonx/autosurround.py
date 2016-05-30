@@ -16,7 +16,7 @@ def surround(pair):
     begin = vim.current.buffer[cursor[0]-1][cursor[1]-1]
 
     # breaks undo and keep cursor at place
-    vim.command('let &undolevels = &undolevels')
+    # vim.command('let &undolevels = &undolevels')
     vim.command('normal! "_X')
     vim.command('normal! i' + begin)
     vim.command('normal! l')
@@ -117,10 +117,13 @@ def _match_enclosing_quote(cursor):
     if not _is_cursor_in_string((cursor[0], cursor[1]+1)):
         return
 
+    old_cursor = vim.current.window.cursor
+
     with _restore_selection_register():
         with _restore_cursor():
             vim.command("normal! va{}\033".format(match.group(1)))
-            return vim.current.window.cursor
+            if vim.current.window.cursor > old_cursor:
+                return vim.current.window.cursor
 
 
 def _match_long_identifier(cursor):
