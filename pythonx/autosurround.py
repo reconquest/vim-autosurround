@@ -168,9 +168,11 @@ def _match_end_of_code_block(cursor):
         return
 
     if len(vim.current.buffer) > cursor[0]:
-        stripped_line = vim.current.buffer[cursor[0]].strip()
-        if stripped_line == '}' or stripped_line == '':
-            return (cursor[0], len(vim.current.buffer[cursor[0]-1])-1)
+        next_line = vim.current.buffer[cursor[0]].strip()
+        if next_line == '}' or next_line == '':
+            line = vim.current.buffer[cursor[0]-1]
+            matches = re.match(r'^(.*?)[:}]?$', line)
+            return (cursor[0], len(matches.group(1))-1)
 
 
 def _match_argument(cursor):
