@@ -13,7 +13,7 @@ def surround(pair):
         return False
 
     cursor = vim.current.window.cursor
-    begin = vim.current.buffer[cursor[0]-1][cursor[1]-1]
+    begin = vim.current.buffer[cursor[0] - 1][cursor[1] - 1]
 
     # breaks undo and keep cursor at place
     # vim.command('let &undolevels = &undolevels')
@@ -25,7 +25,7 @@ def surround(pair):
         vim.current.window.cursor = (end_pos[0], end_pos[1])
         vim.command('normal! a' + pair)
 
-    _current_pairs[(cursor, pair)] = (end_pos[0], end_pos[1]+1)
+    _current_pairs[(cursor, pair)] = (end_pos[0], end_pos[1] + 1)
 
     return True
 
@@ -49,15 +49,15 @@ def correct_inserted_pair(open, close):
 
             close_pair_pos = _current_pairs[pair]
 
-            if len(buffer[close_pair_pos[0]-1]) <= close_pair_pos[1]:
+            if len(buffer[close_pair_pos[0] - 1]) <= close_pair_pos[1]:
                 continue
 
-            if buffer[close_pair_pos[0]-1][close_pair_pos[1]] != close:
+            if buffer[close_pair_pos[0] - 1][close_pair_pos[1]] != close:
                 continue
 
-            buffer[close_pair_pos[0]-1] = \
-                buffer[close_pair_pos[0]-1][:close_pair_pos[1]] + \
-                buffer[close_pair_pos[0]-1][close_pair_pos[1]+1:]
+            buffer[close_pair_pos[0] - 1] = \
+                buffer[close_pair_pos[0] - 1][:close_pair_pos[1]] + \
+                buffer[close_pair_pos[0] - 1][close_pair_pos[1] + 1:]
 
             try:
                 open_pair_pos = vim.eval(
@@ -80,9 +80,10 @@ def correct_inserted_pair(open, close):
                     corrected = True
             finally:
                 if not corrected:
-                    buffer[close_pair_pos[0]-1] = \
-                        buffer[close_pair_pos[0]-1][:close_pair_pos[1]] + close + \
-                        buffer[close_pair_pos[0]-1][close_pair_pos[1]:]
+                    buffer[close_pair_pos[0] - 1] = \
+                        buffer[close_pair_pos[0] - 1][:close_pair_pos[1]] + \
+                        close + \
+                        buffer[close_pair_pos[0] - 1][close_pair_pos[1]:]
                 else:
                     return True
 
@@ -92,7 +93,7 @@ def correct_inserted_pair(open, close):
 def clean_current_pairs():
     global _current_pairs
     cursor = vim.current.window.cursor
-    cursor = (cursor[0], cursor[1]+1)
+    cursor = (cursor[0], cursor[1] + 1)
 
     kept_pairs = {}
     for open_pair in _current_pairs:
@@ -106,7 +107,7 @@ def clean_current_pairs():
 
 
 def _match_enclosing_quote(cursor):
-    line = vim.current.buffer[cursor[0]-1][cursor[1]:]
+    line = vim.current.buffer[cursor[0] - 1][cursor[1]:]
     match = re.match(r"(['\"`]).*", line)
     if not match:
         return
@@ -114,7 +115,7 @@ def _match_enclosing_quote(cursor):
     if _is_cursor_in_string(cursor):
         return
 
-    if not _is_cursor_in_string((cursor[0], cursor[1]+1)):
+    if not _is_cursor_in_string((cursor[0], cursor[1] + 1)):
         return
 
     old_cursor = vim.current.window.cursor
@@ -127,7 +128,7 @@ def _match_enclosing_quote(cursor):
 
 
 def _match_long_identifier(cursor):
-    line = vim.current.buffer[cursor[0]-1][cursor[1]:]
+    line = vim.current.buffer[cursor[0] - 1][cursor[1]:]
     match = re.match(r'^([.\w_\[\]-]+)\s', line)
     if not match:
         return
@@ -138,11 +139,11 @@ def _match_long_identifier(cursor):
     if _is_cursor_in_string(cursor):
         return
 
-    return (cursor[0], cursor[1]+len(match.group(1))-1)
+    return (cursor[0], cursor[1] + len(match.group(1)) - 1)
 
 
 def _match_enclosing_brace(cursor):
-    line = vim.current.buffer[cursor[0]-1][cursor[1]:]
+    line = vim.current.buffer[cursor[0] - 1][cursor[1]:]
     match = re.match(r'^(\[[.\w_\[\]-]+|[.\w_-]*)[([{]', line)
     if not match:
         return
@@ -161,31 +162,31 @@ def _match_end_of_code_block(cursor):
     if _is_cursor_in_string(cursor):
         return
 
-    if len(vim.current.buffer[cursor[0]-1]) == cursor[1]:
+    if len(vim.current.buffer[cursor[0] - 1]) == cursor[1]:
         return
 
-    if vim.current.buffer[cursor[0]-1][-1] in '{[(':
+    if vim.current.buffer[cursor[0] - 1][-1] in '{[("\'`':
         return
 
     if len(vim.current.buffer) > cursor[0]:
         next_line = vim.current.buffer[cursor[0]].strip()
         if next_line == '}' or next_line == '':
-            line = vim.current.buffer[cursor[0]-1]
+            line = vim.current.buffer[cursor[0] - 1]
             matches = re.match(r'^(.*?)[:}]?$', line)
-            return (cursor[0], len(matches.group(1))-1)
+            return (cursor[0], len(matches.group(1)) - 1)
 
 
 def _match_argument(cursor):
     if _is_cursor_in_string(cursor):
         return
 
-    line = vim.current.buffer[cursor[0]-1][cursor[1]:]
+    line = vim.current.buffer[cursor[0] - 1][cursor[1]:]
 
     matches = re.match(r'([\w.]+)[,)\]]', line)
     if not matches:
         return
 
-    return (cursor[0], cursor[1]+len(matches.group(1))-1)
+    return (cursor[0], cursor[1] + len(matches.group(1)) - 1)
 
 
 def register_finder(callback):
@@ -224,6 +225,7 @@ def _is_cursor_in_string(cursor):
         if syn_name.lower() == 'string':
             return True
             break
+
     return False
 
 
