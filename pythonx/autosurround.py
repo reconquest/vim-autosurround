@@ -189,6 +189,18 @@ def _match_argument(cursor):
     return (cursor[0], cursor[1] + len(matches.group(1)) - 1)
 
 
+def _match_semicolon(cursor):
+    line = vim.current.buffer[cursor[0] - 1][cursor[1]:]
+    match = re.match(r'^(.*);', line)
+    if not match:
+        return
+
+    if _is_cursor_in_string(cursor):
+        return
+
+    return (cursor[0], cursor[1] + len(match.group(1)) - 1)
+
+
 def register_finder(callback):
     enclosing_strategies.append(callback)
     return len(enclosing_strategies)
@@ -235,3 +247,4 @@ register_finder(_match_argument)
 register_finder(_match_end_of_code_block)
 register_finder(_match_enclosing_brace)
 register_finder(_match_long_identifier)
+register_finder(_match_semicolon)
