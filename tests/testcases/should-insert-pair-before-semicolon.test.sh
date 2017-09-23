@@ -1,5 +1,5 @@
 vim-tests:type "$_vim_session" \
-    'ablah()\;' 'escape' 'hhaxxx(' "escape" \
+    'ablah()\;' 'escape' 'hhaxxx(' "escape"
 
 tests:eval tmux:cat-screen "$_vim_session"
 
