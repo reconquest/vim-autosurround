@@ -1,14 +1,23 @@
 py import autosurround
 
 fun! AutoSurround(pair)
-    return pyeval(printf('autosurround.surround("%s")', a:pair))
+    call pyeval(printf('autosurround.surround("%s")', a:pair))
+
+    return ''
+endfun
+
+fun! AutoSurroundCorrect(open, close)
+    call pyeval(printf(
+        \ 'autosurround.correct_inserted_pair("%s", "%s")',
+        \ a:open, a:close))
+
+    return a:close
 endfun
 
 fun! AutoSurroundInitMappings()
-    inoremap <silent> <buffer> )
-        \ <C-R>=pyeval("autosurround.correct_inserted_pair('(', ')')")
-            \ ? ')'
-            \ : (exists('*g:MatchemMatchEnd') ? MatchemMatchEnd(')') : ')')<CR>
+    inoremap <silent> <buffer> ( (<C-R>=AutoSurround(')')<CR>
+
+    inoremap <silent> <buffer> ) <C-R>=AutoSurroundCorrect('(', ')')<CR>
 endfun!
 
 augroup autosurround

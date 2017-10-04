@@ -152,10 +152,22 @@ def _match_enclosing_brace(cursor):
         return
 
     with _restore_cursor():
+        vim.current.window.cursor = cursor
         vim.command('normal! {}%'.format(
             (str(len(match.group(1))) + 'l') if match.group(1) != '' else ''
         ))
-        return vim.current.window.cursor
+
+        cursor = (
+            vim.current.window.cursor[0],
+            vim.current.window.cursor[1] + 1
+        )
+
+        line = vim.current.buffer[cursor[0] - 1][cursor[1]:]
+
+        if re.match(r'^[\w{([]', line):
+            return _match_enclosing_brace(cursor)
+
+        return cursor
 
 
 def _match_end_of_code_block(cursor):
