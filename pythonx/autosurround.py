@@ -7,31 +7,33 @@ from contextlib import contextmanager
 _current_pairs = {}
 
 
-def surround(pair):
-    end_pos = find_enclosure(vim.current.window.cursor)
-    if not end_pos:
-        return False
-
+def surround(open_pair, close_pair):
     cursor = vim.current.window.cursor
-    begin = vim.current.buffer[cursor[0] - 1][cursor[1] - 1]
 
-    # breaks undo and keep cursor at place
-    # vim.command('let &undolevels = &undolevels')
-    vim.command('normal! "_X')
-    vim.command('normal! i' + begin)
-    vim.command('normal! l')
+    try:
+        end_pos = find_enclosure(cursor)
+        if not end_pos:
+            return False
+    finally:
+        _insert_at_cursor(open_pair)
+
+    vim.command('let &undolevels = &undolevels')
 
     with _restore_cursor():
         vim.current.window.cursor = (end_pos[0], end_pos[1])
-        vim.command('normal! a' + pair)
+        _insert_at_cursor(close_pair)
 
-    _current_pairs[(cursor, pair)] = (end_pos[0], end_pos[1] + 1)
+    buffer = vim.current.buffer
+    _current_pairs[(buffer.number, cursor, close_pair)] = (
+        end_pos[0],
+        end_pos[1]
+    )
 
     return True
 
 
 def find_enclosure(cursor):
-    for strategy in reversed(enclosing_strategies):
+    for strategy in enclosing_strategies:
         if strategy is None:
             continue
 
@@ -39,55 +41,102 @@ def find_enclosure(cursor):
         if pos is not None:
             return pos
 
-
-def correct_inserted_pair(open, close):
+def correct_inserted_pair(open_pair, close_pair):
     buffer = vim.current.buffer
 
-    with _restore_cursor():
-        for pair in _current_pairs:
-            corrected = False
+    for pair in _current_pairs:
+        corrected = False
 
-            close_pair_pos = _current_pairs[pair]
+        close_pair_pos = _current_pairs[pair]
 
-            if len(buffer[close_pair_pos[0] - 1]) <= close_pair_pos[1]:
+        if len(buffer) < close_pair_pos[0] - 1:
+            continue
+
+        if len(buffer[close_pair_pos[0] - 1]) <= close_pair_pos[1]:
+            continue
+
+        if buffer[close_pair_pos[0] - 1][close_pair_pos[1]] != close_pair:
+            continue
+
+        _delete_at(close_pair_pos, 1)
+
+        try:
+            open_pair_pos = vim.Function('searchpairpos')(
+                open_pair,
+                "",
+                close_pair,
+                "nb",
+            )
+
+            open_pair_pos = (
+                int(open_pair_pos[0]),
+                int(open_pair_pos[1]) - 1
+            )
+
+            if open_pair_pos <= (0, 0):
                 continue
 
-            if buffer[close_pair_pos[0] - 1][close_pair_pos[1]] != close:
+            open_pair = (buffer.number, open_pair_pos, close_pair)
+
+            if open_pair not in _current_pairs:
                 continue
 
-            buffer[close_pair_pos[0] - 1] = \
-                buffer[close_pair_pos[0] - 1][:close_pair_pos[1]] + \
-                buffer[close_pair_pos[0] - 1][close_pair_pos[1] + 1:]
+            if _current_pairs[open_pair] == close_pair_pos:
+                corrected = True
+        finally:
+            if not corrected:
+                _insert_at(close_pair_pos, close_pair)
+            else:
+                _insert_at_cursor(close_pair)
+                del _current_pairs[pair]
+                return True
 
-            try:
-                open_pair_pos = vim.eval(
-                    'searchpairpos("{}", "", "{}", "nb")'.format(
-                        open, close,
-                    )
-                )
+    return False
 
-                open_pair_pos = (int(open_pair_pos[0]), int(open_pair_pos[1]))
 
-                if open_pair_pos == (0, 0):
-                    return
+def correct_pair(open_pair, close_pair):
+    if correct_inserted_pair(open_pair, close_pair):
+        return True
 
-                open_pair = (open_pair_pos, close)
-
-                if open_pair not in _current_pairs:
-                    return
-
-                if _current_pairs[open_pair] == close_pair_pos:
-                    corrected = True
-            finally:
-                if not corrected:
-                    buffer[close_pair_pos[0] - 1] = \
-                        buffer[close_pair_pos[0] - 1][:close_pair_pos[1]] + \
-                        close + \
-                        buffer[close_pair_pos[0] - 1][close_pair_pos[1]:]
-                else:
-                    return True
-
+    if skip_matching_pair(open_pair, close_pair):
         return False
+
+    _insert_at_cursor(close_pair)
+
+    return True
+
+
+def skip_matching_pair(open_pair, close_pair):
+    with _restore_cursor():
+        cursor = (
+            vim.current.window.cursor[0],
+            vim.current.window.cursor[1]
+        )
+
+        next = vim.current.buffer[cursor[0] - 1][cursor[1]:]
+
+        if not re.match(r'^[)}"\]]+$', next):
+            return False
+
+        if next[0] != close_pair:
+            return False
+
+        vim.command('normal! %')
+
+        new_cursor = (
+            vim.current.window.cursor[0],
+            vim.current.window.cursor[1]
+        )
+
+    if new_cursor != cursor:
+        vim.current.window.cursor = (
+            cursor[0],
+            cursor[1] + 1
+        )
+
+        return True
+
+    return False
 
 
 def clean_current_pairs():
@@ -108,23 +157,30 @@ def clean_current_pairs():
 
 def _match_enclosing_quote(cursor):
     line = vim.current.buffer[cursor[0] - 1][cursor[1]:]
-    match = re.match(r"(['\"`]).*", line)
-    if not match:
+    if len(line) < 1:
         return
 
-    if _is_cursor_in_string(cursor):
+    match = re.match(r"(['\"`]).*", line)
+    if not match:
         return
 
     if not _is_cursor_in_string((cursor[0], cursor[1] + 1)):
         return
 
+    if cursor[1] > 0:
+        if _is_cursor_in_string((cursor[0], cursor[1] - 1)):
+            return
+
     old_cursor = vim.current.window.cursor
 
     with _restore_selection_register():
         with _restore_cursor():
-            vim.command("normal! va{}\033".format(match.group(1)))
+            vim.command("normal! \"_va{}\033".format(match.group(1)))
             if vim.current.window.cursor > old_cursor:
-                return vim.current.window.cursor
+                return (
+                    vim.current.window.cursor[0],
+                    vim.current.window.cursor[1] + 2
+                )
 
 
 def _match_long_identifier(cursor):
@@ -139,7 +195,7 @@ def _match_long_identifier(cursor):
     if _is_cursor_in_string(cursor):
         return
 
-    return (cursor[0], cursor[1] + len(match.group(1)) - 1)
+    return (cursor[0], cursor[1] + len(match.group(1)) + 1)
 
 
 def _match_enclosing_brace(cursor):
@@ -167,7 +223,7 @@ def _match_enclosing_brace(cursor):
         if re.match(r'^[\w{([]', line):
             return _match_enclosing_brace(cursor)
 
-        return cursor
+        return (cursor[0], cursor[1]+1)
 
 
 def _match_end_of_code_block(cursor):
@@ -185,7 +241,21 @@ def _match_end_of_code_block(cursor):
         if next_line == '}' or next_line == '':
             line = vim.current.buffer[cursor[0] - 1]
             matches = re.match(r'^(.*?)[:}]?$', line)
-            return (cursor[0], len(matches.group(1)) - 1)
+            return (cursor[0], len(matches.group(1)) + 1)
+
+
+def _match_end_of_line(cursor):
+    if _is_cursor_in_string(cursor):
+        return
+
+    line = vim.current.buffer[cursor[0] - 1]
+
+    if len(line) != cursor[1]:
+        matches = re.match(r'^[)}"\]]+$', line[cursor[1]:])
+        if not matches:
+            return
+
+    return (cursor[0], cursor[1]+1)
 
 
 def _match_argument(cursor):
@@ -198,7 +268,7 @@ def _match_argument(cursor):
     if not matches:
         return
 
-    return (cursor[0], cursor[1] + len(matches.group(1)) - 1)
+    return (cursor[0], cursor[1] + len(matches.group(1)) + 1)
 
 
 def _match_semicolon(cursor):
@@ -210,7 +280,7 @@ def _match_semicolon(cursor):
     if _is_cursor_in_string(cursor):
         return
 
-    return (cursor[0], cursor[1] + len(match.group(1)) - 1)
+    return (cursor[0], cursor[1] + len(match.group(1)))
 
 
 def register_finder(callback):
@@ -237,14 +307,15 @@ def _restore_selection_register():
 
 
 def _is_cursor_in_string(cursor):
-    synstack = vim.eval('synstack({}, {})'.format(
+    synstack = vim.Function('synstack')(
         cursor[0],
-        cursor[1]
-    ))
+        cursor[1] + 1
+    )
 
     for syn_id in synstack:
-        syn_name = vim.eval(
-            'synIDattr(synIDtrans({}), "name")'.format(syn_id)
+        syn_name = vim.Function('synIDattr')(
+            vim.Function('synIDtrans')(syn_id),
+            "name",
         )
         if syn_name.lower() == 'string':
             return True
@@ -253,10 +324,44 @@ def _is_cursor_in_string(cursor):
     return False
 
 
+def _insert_at_cursor(text):
+    cursor = vim.current.window.cursor
+
+    _insert_at(cursor, text)
+
+    vim.current.window.cursor = (
+        cursor[0],
+        cursor[1] + len(text)
+    )
+
+def _insert_at(position, text):
+    vim.current.buffer[position[0] - 1] = \
+        vim.current.buffer[position[0]-1][:position[1]] + \
+        text + \
+        vim.current.buffer[position[0]-1][position[1]:]
+
+
+def _delete_at(position, amount):
+    cursor_before = vim.current.window.cursor
+    vim.current.buffer[position[0] - 1] = \
+        vim.current.buffer[position[0] - 1][:position[1]] + \
+        vim.current.buffer[position[0] - 1][position[1] + amount:]
+    cursor_after = vim.current.window.cursor
+
+    if cursor_before == cursor_after:
+        if position[0] == vim.current.window.cursor[0]:
+            if position[1] < vim.current.window.cursor[1]:
+                vim.current.window.cursor = (
+                    vim.current.window.cursor[0],
+                    vim.current.window.cursor[1]-amount
+                )
+
+
 enclosing_strategies = []
-register_finder(_match_enclosing_quote)
+register_finder(_match_semicolon)
+register_finder(_match_long_identifier)
+register_finder(_match_enclosing_brace)
 register_finder(_match_argument)
 register_finder(_match_end_of_code_block)
-register_finder(_match_enclosing_brace)
-register_finder(_match_long_identifier)
-register_finder(_match_semicolon)
+register_finder(_match_enclosing_quote)
+register_finder(_match_end_of_line)

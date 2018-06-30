@@ -1,10 +1,12 @@
-vim-tests:type "$_vim_session" 'iblah(somevar)' "escape"
-vim-tests:type "$_vim_session" '^lllla' 'ttt{' "escape"
+vim-tests:type "$_vim_session" \
+    'i' 'a = b - 1' 'escape' \
+    'F' 'b' 'i' 'int(' 'escape' \
+    'A' ')'
 
 tests:eval tmux:cat-screen "$_vim_session"
 
 vim-tests:write-file "$_vim_session" "result"
 
 tests:assert-no-diff "result" <<EXPECTED
-blah(ttt{somevar})
+a = int(b - 1)
 EXPECTED

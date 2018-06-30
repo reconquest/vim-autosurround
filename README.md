@@ -1,4 +1,4 @@
-Plugin will automatically add enclosing `)` or `}` (or any other) at appropriate place to be.
+Plugin will automatically add enclosing `)` (or any other) at appropriate place to be.
 
 ![gif](https://cloud.githubusercontent.com/assets/674812/10417889/f530e936-703a-11e5-8f77-2b7f6fe23191.gif)
 
@@ -33,12 +33,6 @@ Currently, following cases are supported:
   if test(blah) != nil
   ```
 
-* surrounding with {}:
-  ```
-  if x(|blah) != nil       type some( ->
-  if x(some{|blah}) != nil
-  ```
-
 * autocorrection:
   ```
   something(|arg1, arg2)        type: test( ->
@@ -47,56 +41,13 @@ Currently, following cases are supported:
   something(test(arg1, arg2))|
   ```
 
-
-
-Undo will remove added pair and leaving cursor in-place:
-
-```
-|(blah)        type: test(  ->
-test(|(blah))  type: <Esc>u ->
-test(|(blah)
-```
-
 # Installation & Usage
 
-Plugin provides only one function, named `AutoSurround(pair)`. `pair` is
-character, which will be inserted at position, determined by internal
-algorithms, described above, or [user-registered functions](#extension).
-
 ```viml
 Plug 'vim-autosurround'
-    inoremap  ( (<C-O>:call AutoSurround(")")<CR>
 ```
 
-In case of using `matchem` or similar surrounding plugins things are going to
-be *little* bit harder:
-
-```viml
-augroup run_after_plug_end
-    au!
-
-call plug#begin('~/.vim/bundle')
-
-" ...
-
-Plug 'vim-autosurround'
-    au User _OverwriteMatchemMappings
-        \ autocmd VimEnter,BufEnter,FileType *
-            \ inoremap <buffer> ( (<C-R>=AutoSurround(")")?'':g:MatchemMatchStart()<CR>
-
-    au User _VimrcRunAfterPlugEnd doautocmd User _OverwriteMatchemMappings
-
-    doautocmd User _OverwriteMatchemMappings
-
-" ...
-
-augroup end
-
-call plug#end()
-
-au VimEnter * doautocmd User _VimrcRunAfterPlugEnd
-au VimEnter * au! run_after_plug_end
-```
+Plugin provides only python API.
 
 # Extension
 

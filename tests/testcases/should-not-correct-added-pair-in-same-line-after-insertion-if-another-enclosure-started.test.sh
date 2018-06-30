@@ -2,7 +2,6 @@ vim-tests:type "$_vim_session" \
     'iblah(somevar, x)' "escape" \
     '^lllla' 'pig(' "escape" \
     '$a' ' && x()' "escape"
-#vim-tests:type "$_vim_session" ':mess' 'enter'
 
 tests:eval tmux:cat-screen "$_vim_session"
 
