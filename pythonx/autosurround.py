@@ -8,7 +8,7 @@ _current_pairs = {}
 
 
 def surround(open_pair, close_pair):
-    cursor = vim.current.window.cursor
+    cursor = _get_cursor()
 
     try:
         end_pos = find_enclosure(cursor)
@@ -20,7 +20,7 @@ def surround(open_pair, close_pair):
     vim.command('let &undolevels = &undolevels')
 
     with _restore_cursor():
-        vim.current.window.cursor = (end_pos[0], end_pos[1])
+        _set_cursor(end_pos[0], end_pos[1])
         _insert_at_cursor(close_pair)
 
     buffer = vim.current.buffer
@@ -61,12 +61,18 @@ def correct_inserted_pair(open_pair, close_pair):
         _delete_at(close_pair_pos, 1)
 
         try:
-            open_pair_pos = vim.Function('searchpairpos')(
-                open_pair,
-                "",
-                close_pair,
-                "nb",
-            )
+            with _restore_cursor():
+                cursor = _get_cursor()
+                line = buffer[cursor[0] - 1]
+                if line[cursor[1] - 1] == close_pair:
+                    _set_cursor(cursor[0], cursor[1] - 1)
+
+                open_pair_pos = vim.Function('searchpairpos')(
+                    open_pair,
+                    "",
+                    close_pair,
+                    "nb",
+                )
 
             open_pair_pos = (
                 int(open_pair_pos[0]),
@@ -153,6 +159,25 @@ def clean_current_pairs():
             kept_pairs[open_pair] = close_pair_pos
 
     _current_pairs = kept_pairs
+
+
+def remove_pair(open_pair, close_pair):
+    pair_pos = vim.Function('searchpairpos')(
+        open_pair,
+        "",
+        close_pair,
+        "n",
+    )
+
+    if pair_pos[0] == 0 and pair_pos[0] == 0:
+        return
+
+    pair_pos = (
+        pair_pos[0],
+        pair_pos[1] - 1
+    )
+
+    _delete_at(pair_pos, 1)
 
 
 def _match_enclosing_quote(cursor):
@@ -325,11 +350,11 @@ def _is_cursor_in_string(cursor):
 
 
 def _insert_at_cursor(text):
-    cursor = vim.current.window.cursor
+    cursor = _get_cursor()
 
     _insert_at(cursor, text)
 
-    vim.current.window.cursor = (
+    _set_cursor(
         cursor[0],
         cursor[1] + len(text)
     )
@@ -342,19 +367,30 @@ def _insert_at(position, text):
 
 
 def _delete_at(position, amount):
-    cursor_before = vim.current.window.cursor
+    cursor_before = _get_cursor()
     vim.current.buffer[position[0] - 1] = \
         vim.current.buffer[position[0] - 1][:position[1]] + \
         vim.current.buffer[position[0] - 1][position[1] + amount:]
-    cursor_after = vim.current.window.cursor
+    cursor_after = _get_cursor()
 
     if cursor_before == cursor_after:
-        if position[0] == vim.current.window.cursor[0]:
-            if position[1] < vim.current.window.cursor[1]:
-                vim.current.window.cursor = (
-                    vim.current.window.cursor[0],
-                    vim.current.window.cursor[1]-amount
+        if position[0] == cursor_after[0]:
+            if position[1] < cursor_after[1]:
+                _set_cursor(
+                    cursor_after[0],
+                    cursor_after[1]-amount
                 )
+
+
+def _get_cursor():
+    return (
+        vim.current.window.cursor[0],
+        vim.current.window.cursor[1],
+    )
+
+
+def _set_cursor(*cursor):
+    vim.current.window.cursor = cursor
 
 
 enclosing_strategies = []
