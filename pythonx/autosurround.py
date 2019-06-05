@@ -1,8 +1,10 @@
 # coding=utf8
 
+from contextlib import contextmanager
 import vim
 import re
-from contextlib import contextmanager
+
+import logging as log
 
 _current_pairs = {}
 
@@ -13,8 +15,70 @@ PAIRS = {
     '(': ')',
     '{': '}',
     '[': ']',
-    '"': '"'
+    '"': '"',
+    "'": "'"
 }
+
+BRACKETS = {
+    '(': ')',
+    '{': '}',
+    '[': ']',
+}
+
+
+def enable_debug_log():
+    log.basicConfig(
+        filename='/tmp/autosurround.log',
+        filemode='w',
+        format='%(levelname)s - %(message)s',
+        level=log.DEBUG
+    )
+
+
+def insert_new_line():
+    cursor = _get_cursor()
+
+    brackets = _is_cursor_between_brackets()
+    if not brackets:
+        _insert_new_line_at_cursor(1)
+        _set_cursor(cursor[0]+1, 0)
+        return
+
+    _insert_new_line_at_cursor(2)
+
+    level = vim.Function('indent')(cursor[0])
+    tabwidth = vim.Function('shiftwidth')()
+
+    expandtab = int(vim.eval('&expandtab'))
+
+    _set_cursor(cursor[0]+1, 0)
+
+    if not expandtab:
+        _insert_at_cursor((level+1)*'\t')
+    else:
+        _insert_at_cursor(((level+1)*tabwidth)*' ')
+
+    cursor = _get_cursor()
+
+
+def _is_cursor_between_brackets():
+    cursor = _get_cursor()
+    line = vim.current.buffer[cursor[0] - 1]
+    if cursor[1] < 1:
+        return False
+
+    open_bracket = line[cursor[1]-1]
+    if open_bracket not in BRACKETS:
+        return False
+
+    close_bracket = BRACKETS[open_bracket]
+    if len(line) > cursor[1]:
+        cursor_char = line[cursor[1]]
+        if cursor_char != close_bracket:
+            return False
+
+    return (open_bracket, close_bracket)
+
 
 def surround(open_pair, close_pair):
     cursor = _get_cursor()
@@ -103,7 +167,7 @@ def correct_inserted_pair(open_pair, close_pair):
             if not corrected:
                 _insert_at(close_pair_pos, close_pair)
                 if moved:
-                    move_cursor_relative(0, 1)
+                    _move_cursor_relative(0, 1)
             else:
                 _insert_at_cursor(close_pair)
                 del _current_pairs[pair]
@@ -187,7 +251,7 @@ def remove_pair():
     if not match:
         return
 
-    open_pair = match.group(0)
+    open_pair = match.group(0)[0]
     close_pair = PAIRS[open_pair]
     _remove_pair(open_pair, close_pair)
 
@@ -330,7 +394,7 @@ def _match_end_of_line(cursor):
     line = vim.current.buffer[cursor[0] - 1]
 
     if len(line) != cursor[1]:
-        matches = re.match(r'^[)}"\]]+$', line[cursor[1]:])
+        matches = re.match(r'^[)"\]]+$', line[cursor[1]:])
         if not matches:
             return
 
@@ -413,24 +477,53 @@ def _insert_at_cursor(text):
         cursor[1] + len(text)
     )
 
-_debug = False
-def debug_cursor():
-    global _debug
-    if not _debug:
-        return
+
+def _insert_new_line_at_cursor(count):
+    cursor = _get_cursor()
+    line   = cursor[0] - 1
+    column = cursor[1]
+
+    # adding empty line so lines can be easily moved after new line
+    for _ in range(count):
+        vim.current.buffer.append("")
+
+    text = vim.current.buffer[line]
+    vim.current.buffer[line] = text[:column]
+
+    diff = len(vim.current.buffer) - line - count -1
+    if diff > 0:
+        # moving lines in reversed order
+        for i in range(diff):
+            # -1 because starts with zero
+            transfer = len(vim.current.buffer) - 1 - i
+            vim.current.buffer[transfer] = vim.current.buffer[transfer-count]
+
+    vim.current.buffer[line+count] = text[column:]
+
+
+def dump_buffer():
     vimline, vimcolumn = vim.current.window.cursor
-    column = 0
-    header = []
-    text = []
-    for char in vim.current.buffer[vimline-1]:
-        header.append("%-2s" % str(column))
-        text.append("%-2s" % char)
-        column += 1
-    print('------------------')
-    print('current_column: ', vimcolumn)
-    print(' '.join(header))
-    print(' '.join(text))
-    print('------------------')
+
+    log.debug('--+---------------')
+    log.debug('current_line: %s', vimline-1)
+    log.debug('current_column: %s', vimcolumn)
+
+    line_nr = 0
+    for line in vim.current.buffer:
+        column = 0
+        header = []
+        text = []
+        header.append("%-2s|" % str(line_nr))
+        text.append("%-2s|" % str(line_nr))
+        for char in line:
+            header.append("%-2s" % str(column))
+            text.append("%-2s" % char)
+            column += 1
+        line_nr += 1
+
+        log.debug(' '.join(header))
+        log.debug(' '.join(text))
+        log.debug('--+---------------')
 
 def _insert_at(position, text):
     line = position[0] - 1
@@ -452,7 +545,7 @@ def _delete_at(position, amount):
     if cursor_before == cursor_after:
         if position[0] == cursor_after[0]:
             if position[1] < cursor_after[1]:
-                move_cursor_relative(0, -amount)
+                _move_cursor_relative(0, -amount)
                 return True
     else:
         return True
@@ -460,7 +553,7 @@ def _delete_at(position, amount):
     return False
 
 
-def move_cursor_relative(line, column):
+def _move_cursor_relative(line, column):
     vim.current.window.cursor = (
         vim.current.window.cursor[0]+line,
         vim.current.window.cursor[1]+column
