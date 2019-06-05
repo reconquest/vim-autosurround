@@ -58,7 +58,7 @@ def correct_inserted_pair(open_pair, close_pair):
         if buffer[close_pair_pos[0] - 1][close_pair_pos[1]] != close_pair:
             continue
 
-        _delete_at(close_pair_pos, 1)
+        moved = _delete_at(close_pair_pos, 1)
 
         try:
             with _restore_cursor():
@@ -82,16 +82,20 @@ def correct_inserted_pair(open_pair, close_pair):
             if open_pair_pos <= (0, 0):
                 continue
 
-            open_pair = (buffer.number, open_pair_pos, close_pair)
+            current_pair = (buffer.number, open_pair_pos, close_pair)
 
-            if open_pair not in _current_pairs:
+            if current_pair not in _current_pairs:
                 continue
 
-            if _current_pairs[open_pair] == close_pair_pos:
+            if _current_pairs[current_pair] == close_pair_pos:
                 corrected = True
         finally:
             if not corrected:
                 _insert_at(close_pair_pos, close_pair)
+                if moved:
+                    move_cursor_relative(0, 1)
+
+                debug_cursor()
             else:
                 _insert_at_cursor(close_pair)
                 del _current_pairs[pair]
@@ -359,11 +363,33 @@ def _insert_at_cursor(text):
         cursor[1] + len(text)
     )
 
+_debug = False
+def debug_cursor():
+    global _debug
+    if not _debug:
+        return
+    vimline, vimcolumn = vim.current.window.cursor
+    column = 0
+    header = []
+    text = []
+    for char in vim.current.buffer[vimline-1]:
+        header.append("%-2s" % str(column))
+        text.append("%-2s" % char)
+        column += 1
+    print('------------------')
+    print('current_column: ', vimcolumn)
+    print(' '.join(header))
+    print(' '.join(text))
+    print('------------------')
+
 def _insert_at(position, text):
-    vim.current.buffer[position[0] - 1] = \
-        vim.current.buffer[position[0]-1][:position[1]] + \
+    line = position[0] - 1
+    column = position[1]
+
+    vim.current.buffer[line] = \
+        vim.current.buffer[line][:column] + \
         text + \
-        vim.current.buffer[position[0]-1][position[1]:]
+        vim.current.buffer[line][column:]
 
 
 def _delete_at(position, amount):
@@ -376,10 +402,19 @@ def _delete_at(position, amount):
     if cursor_before == cursor_after:
         if position[0] == cursor_after[0]:
             if position[1] < cursor_after[1]:
-                _set_cursor(
-                    cursor_after[0],
-                    cursor_after[1]-amount
-                )
+                move_cursor_relative(0, -amount)
+                return True
+    else:
+        return True
+
+    return False
+
+
+def move_cursor_relative(line, column):
+    vim.current.window.cursor = (
+        vim.current.window.cursor[0]+line,
+        vim.current.window.cursor[1]+column
+    )
 
 
 def _get_cursor():
