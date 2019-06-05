@@ -77,7 +77,7 @@ def correct_inserted_pair(open_pair, close_pair):
                     _set_cursor(cursor[0], cursor[1] - 1)
 
                 open_pair_pos = vim.Function('searchpairpos')(
-                    open_pair,
+                    _escape_open_pair(open_pair),
                     "",
                     close_pair,
                     "nb",
@@ -103,8 +103,6 @@ def correct_inserted_pair(open_pair, close_pair):
                 _insert_at(close_pair_pos, close_pair)
                 if moved:
                     move_cursor_relative(0, 1)
-
-                debug_cursor()
             else:
                 _insert_at_cursor(close_pair)
                 del _current_pairs[pair]
@@ -134,7 +132,7 @@ def skip_matching_pair(open_pair, close_pair):
 
         next = vim.current.buffer[cursor[0] - 1][cursor[1]:]
 
-        if not re.match(RE_CLOSING_PAIRS, next):
+        if len(next) == 0:
             return False
 
         if next[0] != close_pair:
@@ -194,12 +192,8 @@ def remove_pair():
 
 
 def _remove_pair(open_pair, close_pair):
-    # need escape [ for searchpairpos since it'll be treated as regexp symbol
-    if open_pair == "[":
-        open_pair = "\\["
-
     pair_pos = vim.Function('searchpairpos')(
-        open_pair,
+        _escape_open_pair(open_pair),
         "",
         close_pair,
         "n",
@@ -458,6 +452,13 @@ def _get_cursor():
 
 def _set_cursor(*cursor):
     vim.current.window.cursor = cursor
+
+
+def _escape_open_pair(pair):
+    # need escape [ for searchpairpos since it'll be treated as regexp symbol
+    if pair == "[":
+        return "\\["
+    return pair
 
 
 enclosing_strategies = []
