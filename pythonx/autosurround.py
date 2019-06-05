@@ -6,6 +6,15 @@ from contextlib import contextmanager
 
 _current_pairs = {}
 
+RE_CLOSING_PAIRS = r'^[)}"\]]+$'
+RE_OPENING_PAIRS = r'^[\(\{"\[]+$'
+
+PAIRS = {
+    '(': ')',
+    '{': '}',
+    '[': ']',
+    '"': '"'
+}
 
 def surround(open_pair, close_pair):
     cursor = _get_cursor()
@@ -125,7 +134,7 @@ def skip_matching_pair(open_pair, close_pair):
 
         next = vim.current.buffer[cursor[0] - 1][cursor[1]:]
 
-        if not re.match(r'^[)}"\]]+$', next):
+        if not re.match(RE_CLOSING_PAIRS, next):
             return False
 
         if next[0] != close_pair:
@@ -165,7 +174,30 @@ def clean_current_pairs():
     _current_pairs = kept_pairs
 
 
-def remove_pair(open_pair, close_pair):
+def remove_pair():
+    cursor = _get_cursor()
+
+    # current cursor should be at least on 2nd position (start with 0)
+    # to find a pair
+    if cursor[1] < 1:
+        return
+
+    line = vim.current.buffer[cursor[0] - 1]
+
+    match = re.match(RE_OPENING_PAIRS, line[cursor[1]-1])
+    if not match:
+        return
+
+    open_pair = match.group(0)
+    close_pair = PAIRS[open_pair]
+    _remove_pair(open_pair, close_pair)
+
+
+def _remove_pair(open_pair, close_pair):
+    # need escape [ for searchpairpos since it'll be treated as regexp symbol
+    if open_pair == "[":
+        open_pair = "\\["
+
     pair_pos = vim.Function('searchpairpos')(
         open_pair,
         "",
@@ -173,7 +205,7 @@ def remove_pair(open_pair, close_pair):
         "n",
     )
 
-    if pair_pos[0] == 0 and pair_pos[0] == 0:
+    if pair_pos[0] == 0:
         return
 
     pair_pos = (
