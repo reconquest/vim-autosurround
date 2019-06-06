@@ -38,27 +38,35 @@ def enable_debug_log():
 def insert_new_line():
     cursor = _get_cursor()
 
-    brackets = _is_cursor_between_brackets()
-    if not brackets:
-        _insert_new_line_at_cursor(1)
-        _set_cursor(cursor[0]+1, 0)
-        return
-
-    _insert_new_line_at_cursor(2)
-
-    level = vim.Function('indent')(cursor[0])
+    indent = vim.Function('indent')(cursor[0])
     tabwidth = vim.Function('shiftwidth')()
 
+    in_brackets = _is_cursor_between_brackets()
+
     expandtab = int(vim.eval('&expandtab'))
-
-    _set_cursor(cursor[0]+1, 0)
-
     if not expandtab:
-        _insert_at_cursor((level+1)*'\t')
+        symbol = '\t'
+        shift = indent/tabwidth
+        next_shift = shift
+        if in_brackets:
+            next_shift += 1
     else:
-        _insert_at_cursor(((level+1)*tabwidth)*' ')
+        symbol = ' '
+        shift = indent
+        next_shift = shift
+        if in_brackets:
+            next_shift += tabwidth
 
-    cursor = _get_cursor()
+    if not in_brackets:
+        _insert_new_line_at_cursor(1, shift*symbol)
+        _set_cursor(cursor[0]+1, shift)
+        return
+
+    _insert_new_line_at_cursor(2, shift*symbol)
+    vim.current.buffer[cursor[0]] = (next_shift * symbol)
+    _set_cursor(cursor[0]+1, next_shift)
+
+    # _insert_at_cursor(next_shift * symbol)
 
 
 def _is_cursor_between_brackets():
@@ -478,7 +486,7 @@ def _insert_at_cursor(text):
     )
 
 
-def _insert_new_line_at_cursor(count):
+def _insert_new_line_at_cursor(count, indentation):
     cursor = _get_cursor()
     line   = cursor[0] - 1
     column = cursor[1]
@@ -487,18 +495,20 @@ def _insert_new_line_at_cursor(count):
     for _ in range(count):
         vim.current.buffer.append("")
 
-    text = vim.current.buffer[line]
+    move_start = line + count
+    move_end = len(vim.current.buffer) - 1
+
+    text = vim.current.buffer[line][:]
+
     vim.current.buffer[line] = text[:column]
 
-    diff = len(vim.current.buffer) - line - count -1
-    if diff > 0:
-        # moving lines in reversed order
-        for i in range(diff):
-            # -1 because starts with zero
-            transfer = len(vim.current.buffer) - 1 - i
-            vim.current.buffer[transfer] = vim.current.buffer[transfer-count]
+    target = move_end
+    while target > move_start:
+        target_text = vim.current.buffer[target-count]
+        vim.current.buffer[target] = target_text
+        target -= 1
 
-    vim.current.buffer[line+count] = text[column:]
+    vim.current.buffer[line+count] = indentation + text[column:]
 
 
 def dump_buffer():
