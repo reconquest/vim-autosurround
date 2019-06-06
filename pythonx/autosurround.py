@@ -91,6 +91,55 @@ def _is_cursor_between_brackets():
     return (open_bracket, None)
 
 
+def enquote(char):
+    cursor = _get_cursor()
+
+    line = cursor[0] - 1
+    column = cursor[1]
+
+    text = vim.current.buffer[line]
+    text_before = text[:column]
+    text_after = text[column:]
+
+    if len(text_before) > 0 and text_before[-1]== "\\":
+        if len(text_before) > 1 and text_before[-2] != "\\":
+            _insert_at_cursor(char)
+            return
+
+    count_before = count_quotes(text_before, char)
+    count_after = count_quotes(text_after, char)
+
+    if count_before == 0 and count_after == 0:
+        surround(char, char)
+        return
+
+    if count_after == 0 or count_before == 0:
+        surround(char, char)
+        return
+
+    mod = (count_before + count_after) % 2
+    if mod == 0:
+        if len(text_after) > 0 and text_after[0]== char:
+            _move_cursor_relative(0, 1)
+            return
+
+    _dump_buffer()
+    if not surround(char, char):
+        with _restore_cursor():
+            _insert_at_cursor(char)
+
+
+def count_quotes(text, quote):
+    escape = False
+    count = 0
+    for char in text:
+        if char == "\\":
+            escape = not escape
+            continue
+        if char == quote:
+            count += 1
+    return count
+
 
 def surround(open_pair, close_pair):
     cursor = _get_cursor()
@@ -104,6 +153,7 @@ def surround(open_pair, close_pair):
 
     vim.command('let &undolevels = &undolevels')
 
+    # can't be omit moving cursor here? we could use vim.current.buffer
     with _restore_cursor():
         _set_cursor(end_pos[0], end_pos[1])
         _insert_at_cursor(close_pair)
@@ -124,7 +174,6 @@ def find_enclosure(cursor):
 
         pos = strategy(cursor)
         if pos is not None:
-            # print(strategy)
             return pos
 
 def correct_inserted_pair(open_pair, close_pair):
@@ -375,7 +424,7 @@ def _match_stopper(cursor):
 
     line = vim.current.buffer[cursor[0] - 1][cursor[1]:]
     for index in range(len(line)):
-        if line[index] in '}])"\']`;=,':
+        if line[index] in '}])]`;=,':
             return (cursor[0], cursor[1]+1+index)
 
     return
@@ -515,7 +564,7 @@ def _insert_new_line_at_cursor(count, indentation):
     vim.current.buffer[line+count] = indentation + text[column:]
 
 
-def dump_buffer():
+def _dump_buffer():
     vimline, vimcolumn = vim.current.window.cursor
 
     log.debug('--+---------------')
