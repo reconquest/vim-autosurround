@@ -57,6 +57,11 @@ def insert_new_line():
         if in_brackets:
             next_shift += tabwidth
 
+    if in_brackets and in_brackets[1] == None:
+        _insert_new_line_at_cursor(1, next_shift*symbol)
+        _set_cursor(cursor[0]+1, next_shift)
+        return
+
     if not in_brackets:
         _insert_new_line_at_cursor(1, shift*symbol)
         _set_cursor(cursor[0]+1, shift)
@@ -83,7 +88,7 @@ def _is_cursor_between_brackets():
     if len(line) > cursor[1]:
         cursor_char = line[cursor[1]]
         if cursor_char != close_bracket:
-            return False
+            return (open_bracket, None)
 
     return (open_bracket, close_bracket)
 
