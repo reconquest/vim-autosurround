@@ -8,4 +8,8 @@ import:use github.com/reconquest/vim-tests.bash
 
 _vim_session=vim-test-$RANDOM
 
+rm -rf gifs
+mkdir -p gifs
+_gifs_dir=$(readlink -f gifs)
+
 test-runner:run "${@}"
