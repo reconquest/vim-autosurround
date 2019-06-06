@@ -71,8 +71,6 @@ def insert_new_line():
     vim.current.buffer[cursor[0]] = (next_shift * symbol)
     _set_cursor(cursor[0]+1, next_shift)
 
-    # _insert_at_cursor(next_shift * symbol)
-
 
 def _is_cursor_between_brackets():
     cursor = _get_cursor()
@@ -87,10 +85,11 @@ def _is_cursor_between_brackets():
     close_bracket = BRACKETS[open_bracket]
     if len(line) > cursor[1]:
         cursor_char = line[cursor[1]]
-        if cursor_char != close_bracket:
-            return (open_bracket, None)
+        if cursor_char == close_bracket:
+            return (open_bracket, close_bracket)
 
-    return (open_bracket, close_bracket)
+    return (open_bracket, None)
+
 
 
 def surround(open_pair, close_pair):
