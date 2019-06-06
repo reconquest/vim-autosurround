@@ -51,3 +51,13 @@ escape
 @
 if [[ "$" ]]; then
 CASE
+
+:testcase <<CASE
+i
+if [[x]]; then
+escape
+0fxs
+"$"
+@
+if [["$"]]; then
+CASE

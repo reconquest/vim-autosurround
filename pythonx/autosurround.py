@@ -657,11 +657,11 @@ def _escape_open_pair(pair):
 
 enclosing_strategies = []
 register_finder(_match_space)
-register_finder(_match_semicolon)
 register_finder(_match_long_identifier)
 register_finder(_match_enclosing_brace)
 register_finder(_match_argument)
 register_finder(_match_stopper)
+register_finder(_match_semicolon)
 register_finder(_match_end_of_code_block)
 register_finder(_match_enclosing_quote)
 register_finder(_match_end_of_line)
