@@ -123,7 +123,6 @@ def enquote(char):
             _move_cursor_relative(0, 1)
             return
 
-    _dump_buffer()
     if not surround(char, char):
         with _restore_cursor():
             _insert_at_cursor(char)
@@ -314,7 +313,9 @@ def remove_pair():
 
     open_pair = match.group(0)[0]
     close_pair = PAIRS[open_pair]
-    _remove_pair(open_pair, close_pair)
+    with _restore_cursor():
+        _move_cursor_relative(0, -1)
+        _remove_pair(open_pair, close_pair)
 
 
 def _remove_pair(open_pair, close_pair):
@@ -424,7 +425,7 @@ def _match_stopper(cursor):
 
     line = vim.current.buffer[cursor[0] - 1][cursor[1]:]
     for index in range(len(line)):
-        if line[index] in '}])]`;=,':
+        if line[index] in '}])]`;=,<>':
             return (cursor[0], cursor[1]+1+index)
 
     return
