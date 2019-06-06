@@ -485,7 +485,7 @@ def _match_semicolon(cursor):
     if _is_cursor_in_string(cursor):
         return
 
-    return (cursor[0], cursor[1] + len(match.group(1)))
+    return (cursor[0], cursor[1] + len(match.group(1)) + 1)
 
 
 def register_finder(callback):
