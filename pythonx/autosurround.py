@@ -119,7 +119,7 @@ def enquote(char):
 
     mod = (count_before + count_after) % 2
     if mod == 0:
-        if len(text_after) > 0 and text_after[0]== char:
+        if len(text_after) > 0 and text_after[0] == char:
             _move_cursor_relative(0, 1)
             return
 
@@ -408,6 +408,19 @@ def _match_enclosing_brace(cursor):
         return (cursor[0], cursor[1]+1)
 
 
+def _match_space(cursor):
+    if _is_cursor_in_string(cursor):
+        return
+
+    if len(vim.current.buffer[cursor[0] - 1]) == cursor[1]:
+        return
+
+    line = vim.current.buffer[cursor[0] - 1][cursor[1]:]
+    if line.startswith(' ') or line.startswith('\t'):
+        return (cursor[0], cursor[1]+1)
+
+    return
+
 def _match_stopper(cursor):
     """
     returns current cursor position if any stopper found in the end of line
@@ -643,6 +656,7 @@ def _escape_open_pair(pair):
 
 
 enclosing_strategies = []
+register_finder(_match_space)
 register_finder(_match_semicolon)
 register_finder(_match_long_identifier)
 register_finder(_match_enclosing_brace)
