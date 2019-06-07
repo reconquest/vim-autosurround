@@ -175,7 +175,56 @@ def find_enclosure(cursor):
         if pos is not None:
             return pos
 
+
 def correct_inserted_pair(open_pair, close_pair):
+    buffer= vim.current.buffer
+    cursor = _get_cursor()
+
+    text = buffer[cursor[0]-1]
+    if cursor[1]-1 > 0:
+        if buffer[cursor[0]-1][cursor[1]-1] == close_pair:
+            return False
+
+    open_pair_pos = vim.Function('searchpairpos')(
+        _escape_open_pair(open_pair),
+        "",
+        close_pair,
+        "nb",
+    )
+
+    if not open_pair_pos or (open_pair_pos[0] == 0 and open_pair_pos[0] == 0):
+        return False
+
+    close_pair_pos = None
+    with _restore_cursor():
+        _set_cursor(open_pair_pos[0], open_pair_pos[1]-1)
+        cursor_before = _get_cursor()
+        vim.command('normal! %')
+        cursor_after = _get_cursor()
+        close_pair_pos = _get_cursor()
+
+    if cursor_before == cursor_after:
+        return False
+
+
+    if close_pair_pos[0] == cursor[0]:
+        if close_pair_pos[1] == cursor[1]:
+            return False
+
+    if close_pair_pos[0] == open_pair_pos[0]:
+        if close_pair_pos[1] == open_pair_pos[1]:
+            return False
+
+    if not close_pair_pos:
+        return False
+
+    moved = _delete_at(close_pair_pos, 1)
+    _insert_at_cursor(close_pair)
+
+    return True
+
+
+def correct_current_pair(open_pair, close_pair):
     buffer = vim.current.buffer
 
     for pair in _current_pairs:
@@ -237,6 +286,9 @@ def correct_inserted_pair(open_pair, close_pair):
 
 
 def correct_pair(open_pair, close_pair):
+    if correct_current_pair(open_pair, close_pair):
+        return True
+
     if correct_inserted_pair(open_pair, close_pair):
         return True
 
@@ -581,9 +633,9 @@ def _insert_new_line_at_cursor(count, indentation):
 def _dump_buffer():
     vimline, vimcolumn = vim.current.window.cursor
 
-    log.debug('--+---------------')
-    log.debug('current_line: %s', vimline-1)
-    log.debug('current_column: %s', vimcolumn)
+    log.warn('--+---------------')
+    log.warn('current_line: %s', vimline-1)
+    log.warn('current_column: %s', vimcolumn)
 
     line_nr = 0
     for line in vim.current.buffer:
@@ -598,9 +650,9 @@ def _dump_buffer():
             column += 1
         line_nr += 1
 
-        log.debug(' '.join(header))
-        log.debug(' '.join(text))
-        log.debug('--+---------------')
+        log.warn(' '.join(header))
+        log.warn(' '.join(text))
+        log.warn('--+---------------')
 
 def _insert_at(position, text):
     line = position[0] - 1
