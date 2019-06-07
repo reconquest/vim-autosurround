@@ -1,8 +1,10 @@
 py import vim, autosurround
 
 fun! AutoSurroundInitMappings()
-    inoremap <silent> <buffer> " <C-\><C-O>:py autosurround.enquote('"')<CR>
-    inoremap <silent> <buffer> ' <C-\><C-O>:py autosurround.enquote("'")<CR>
+    if &ft != ''
+        inoremap <silent> <buffer> " <C-\><C-O>:py autosurround.enquote('"')<CR>
+        inoremap <silent> <buffer> ' <C-\><C-O>:py autosurround.enquote("'")<CR>
+    endif
 
     inoremap <silent> <buffer> ( <C-\><C-O>:py autosurround.surround('(', ')')<CR>
     inoremap <silent> <buffer> ) <C-\><C-O>:py autosurround.correct_pair('(', ')')<CR>
