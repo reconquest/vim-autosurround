@@ -21,7 +21,7 @@ vim-tests:type "$_vim_session" ":py autosurround.enable_debug_log()" "enter"
     vim-tests:write-file "$_vim_session" "result"
     tests:assert-no-diff "result" < chunk01
 
-    vim-tests:type "$_vim_session" "escape" "escape" "ggDG"
+    vim-tests:type "$_vim_session" "escape" "escape" "ggVGdd" "escape"
     rm -rf chunk*
     cp /dev/null /tmp/autosurround.log
 }

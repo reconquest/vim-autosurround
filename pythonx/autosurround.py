@@ -206,7 +206,6 @@ def correct_inserted_pair(open_pair, close_pair):
     if cursor_before == cursor_after:
         return False
 
-
     if close_pair_pos[0] == cursor[0]:
         if close_pair_pos[1] == cursor[1]:
             return False
@@ -217,6 +216,9 @@ def correct_inserted_pair(open_pair, close_pair):
 
     if not close_pair_pos:
         return False
+
+    if close_pair_pos[0] != vim.current.window.cursor[0]:
+         return False
 
     moved = _delete_at(close_pair_pos, 1)
     _insert_at_cursor(close_pair)
@@ -317,9 +319,11 @@ def skip_matching_pair(open_pair, close_pair):
 
         vim.command('normal! %')
 
+        cursor_after = vim.current.window.cursor
+
         new_cursor = (
-            vim.current.window.cursor[0],
-            vim.current.window.cursor[1]
+            cursor_after[0],
+            cursor_after[1]
         )
 
     if new_cursor != cursor:

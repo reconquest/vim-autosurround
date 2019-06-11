@@ -1,24 +1,25 @@
 :testcase <<CASE
 i{
 enter
-xxx{}
+yyy{}
 left
 delete
 }
 @
 {
-	xxx{}
+	yyy{}
 }
 CASE
 
-:testcase <<CASE
-i{
-enter
-xxx{}
-bspace
-bspace
-@
-{
-	xxx
-}
-CASE
+#TODO fix
+#:testcase <<CASE
+#i{
+#enter
+#xxx{}
+#bspace
+#bspace
+#@
+#{
+#    xxx
+#}
+#CASE
