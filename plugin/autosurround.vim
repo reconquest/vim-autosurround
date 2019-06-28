@@ -1,7 +1,10 @@
 py import vim, autosurround
 
+let g:autosurround_enquote_filetypes_exclude = get(
+        \ g:, 'autosurround_enquote_filetypes_exclude', ['markdown', ''])
+
 fun! AutoSurroundInitMappings()
-    if &ft != ''
+    if index(g:autosurround_enquote_filetypes_exclude, &ft) < 0
         inoremap <silent> <buffer> " <C-\><C-O>:py autosurround.enquote('"')<CR>
         inoremap <silent> <buffer> ' <C-\><C-O>:py autosurround.enquote("'")<CR>
     endif
