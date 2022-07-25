@@ -47,7 +47,7 @@ def insert_new_line():
     if not expandtab:
         symbol = '\t'
         shift = indent/tabwidth
-        next_shift = shift
+        next_shift = int(shift)
         if in_brackets:
             next_shift += 1
     else:
@@ -58,18 +58,18 @@ def insert_new_line():
             next_shift += tabwidth
 
     if in_brackets and in_brackets[1] == None:
-        _insert_new_line_at_cursor(1, next_shift*symbol)
-        _set_cursor(cursor[0]+1, next_shift)
+        _insert_new_line_at_cursor(1, int(next_shift)*symbol)
+        _set_cursor(cursor[0]+1, int(next_shift))
         return
 
     if not in_brackets:
-        _insert_new_line_at_cursor(1, shift*symbol)
-        _set_cursor(cursor[0]+1, shift)
+        _insert_new_line_at_cursor(1, int(shift)*symbol)
+        _set_cursor(cursor[0]+1, int(shift))
         return
 
-    _insert_new_line_at_cursor(2, shift*symbol)
-    vim.current.buffer[cursor[0]] = (next_shift * symbol)
-    _set_cursor(cursor[0]+1, next_shift)
+    _insert_new_line_at_cursor(2, int(shift)*symbol)
+    vim.current.buffer[cursor[0]] = (int(next_shift) * symbol)
+    _set_cursor(cursor[0]+1, int(next_shift))
 
 
 def _is_cursor_between_brackets():
@@ -338,6 +338,7 @@ def skip_matching_pair(open_pair, close_pair):
 
 
 def clean_current_pairs():
+    return
     global _current_pairs
     cursor = vim.current.window.cursor
     cursor = (cursor[0], cursor[1] + 1)
